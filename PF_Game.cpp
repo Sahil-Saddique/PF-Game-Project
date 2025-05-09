@@ -8,10 +8,12 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void ShowWelcome(HWND), ShowSignup(HWND);
 void ClearWindow(HWND), SaveUser();
 
-enum PageState { WELCOME, SIGNUP};
+enum PageState { WELCOME, SIGNUP, LOGIN};
 enum PageState currentPage = WELCOME;
 
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
+HWND hLoginUsername, hLoginPassword;
+char currentUser[MAX_INPUT] = "";
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     WNDCLASS wc = {0};
@@ -68,6 +70,17 @@ void ShowSignup(HWND hwnd) {
     currentPage = SIGNUP;
 }
 
+void ShowLogin(HWND hwnd) {
+    ClearWindow(hwnd);
+    CreateWindow("STATIC", "Username:", WS_VISIBLE | WS_CHILD, 50, 80, 100, 20, hwnd, NULL, NULL, NULL);
+    hLoginUsername = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER, 200, 80, 200, 20, hwnd, NULL, NULL, NULL);
+    CreateWindow("STATIC", "Password:", WS_VISIBLE | WS_CHILD, 50, 120, 100, 20, hwnd, NULL, NULL, NULL);
+    hLoginPassword = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_PASSWORD, 200, 120, 200, 20, hwnd, NULL, NULL, NULL);
+    CreateWindow("BUTTON", "Login", WS_VISIBLE | WS_CHILD, 180, 170, 200, 30, hwnd, (HMENU)4, NULL, NULL);
+    currentPage = LOGIN;
+    
+}
+
 void SaveUser() {
     char userName[MAX_INPUT], name[MAX_INPUT], surName[MAX_INPUT], email[MAX_INPUT], phone[MAX_INPUT], password[MAX_INPUT], confirmPassword[MAX_INPUT];
     GetWindowText(hUsername, userName, MAX_INPUT);
@@ -89,9 +102,32 @@ void SaveUser() {
         fprintf(f, "%s|%s|%s|%s|%s|%s\n", userName, name, surName, email, phone, password);
         fclose(f);
         MessageBox(NULL, "Signup successful! Please login.", "Success", MB_OK);
+        ShowLogin(GetParent(hUsername));
     } else {
         MessageBox(NULL, "Error saving user data.", "File Error", MB_OK);
     }
+}
+
+
+int AuthenticateUser() {
+    char inputUser[MAX_INPUT], inputPass[MAX_INPUT];
+    char fileUser[MAX_INPUT], fileName[MAX_INPUT], fileSurname[MAX_INPUT], fileEmail[MAX_INPUT], filePhone[MAX_INPUT], filePass[MAX_INPUT];
+    GetWindowText(hLoginUsername, inputUser, MAX_INPUT);
+    GetWindowText(hLoginPassword, inputPass, MAX_INPUT);
+
+    FILE *f = fopen("userdata.txt", "r");
+    if (!f) return 0;
+
+    while (fscanf(f, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]\n", fileUser, fileName, fileSurname, fileEmail, filePhone, filePass) == 6) {
+        if (strcmp(inputUser, fileUser) == 0 && strcmp(inputPass, filePass) == 0) {
+            strcpy(currentUser, fileUser);
+            fclose(f);
+            return 1;
+        }
+    }
+
+    fclose(f);
+    return 0;
 }
 
 void ClearWindow(HWND hwnd) {
@@ -114,9 +150,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	
 	        if (currentPage == WELCOME) {
 	            if (wmId == 1) ShowSignup(hwnd);
+	            if (wmId == 3) ShowLogin(hwnd);
 	        } else if (currentPage == SIGNUP && wmId == 2) {
            	 	SaveUser();
-        	} 
+        	} else if (currentPage == LOGIN && wmId == 4) {
+			    if (AuthenticateUser()) {
+			        MessageBox(NULL, "Login successful!", "Success", MB_OK);
+			    } else {
+			        MessageBox(NULL, "Invalid username or password.", "Login Failed", MB_OK | MB_ICONERROR);
+			    }
+			}
+
 		}
 	}
 	
