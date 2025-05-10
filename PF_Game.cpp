@@ -5,10 +5,11 @@
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-void ShowWelcome(HWND), ShowSignup(HWND);
+void ShowWelcome(HWND), ShowSignup(HWND), ShowLogin(HWND), ShowMenu(HWND);
 void ClearWindow(HWND), SaveUser();
+int AuthenticateUser();
 
-enum PageState { WELCOME, SIGNUP, LOGIN};
+enum PageState { WELCOME, SIGNUP, LOGIN, MENU};
 enum PageState currentPage = WELCOME;
 
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
@@ -45,7 +46,7 @@ void ShowWelcome(HWND hwnd) {
     ClearWindow(hwnd);
     CreateWindow("STATIC", "Welcome! Choose an option:", WS_VISIBLE | WS_CHILD, 180, 100, 250, 30, hwnd, NULL, NULL, NULL);
     CreateWindow("BUTTON", "Signup", WS_VISIBLE | WS_CHILD, 200, 150, 180, 30, hwnd, (HMENU)1, NULL, NULL);
-    CreateWindow("BUTTON", "Login", WS_VISIBLE | WS_CHILD, 200, 200, 180, 30, hwnd, NULL, NULL, NULL);
+    CreateWindow("BUTTON", "Login", WS_VISIBLE | WS_CHILD, 200, 200, 180, 30, hwnd, (HMENU)3, NULL, NULL);
     currentPage = WELCOME;
 }
 
@@ -81,6 +82,15 @@ void ShowLogin(HWND hwnd) {
     
 }
 
+void ShowMenu(HWND hwnd) {
+    ClearWindow(hwnd);
+    CreateWindow("STATIC", "Menu:", WS_VISIBLE | WS_CHILD, 250, 50, 100, 30, hwnd, NULL, NULL, NULL);
+    CreateWindow("BUTTON", "View Profile", WS_VISIBLE | WS_CHILD, 200, 100, 200, 30, hwnd, (HMENU)5, NULL, NULL);
+    CreateWindow("BUTTON", "Tic Tac Toe", WS_VISIBLE | WS_CHILD, 200, 150, 200, 30, hwnd, NULL, NULL, NULL);
+    CreateWindow("BUTTON", "Logout", WS_VISIBLE | WS_CHILD, 200, 200, 200, 30, hwnd, (HMENU)6, NULL, NULL);
+    currentPage = MENU;
+}
+
 void SaveUser() {
     char userName[MAX_INPUT], name[MAX_INPUT], surName[MAX_INPUT], email[MAX_INPUT], phone[MAX_INPUT], password[MAX_INPUT], confirmPassword[MAX_INPUT];
     GetWindowText(hUsername, userName, MAX_INPUT);
@@ -108,7 +118,6 @@ void SaveUser() {
     }
 }
 
-
 int AuthenticateUser() {
     char inputUser[MAX_INPUT], inputPass[MAX_INPUT];
     char fileUser[MAX_INPUT], fileName[MAX_INPUT], fileSurname[MAX_INPUT], fileEmail[MAX_INPUT], filePhone[MAX_INPUT], filePass[MAX_INPUT];
@@ -128,6 +137,22 @@ int AuthenticateUser() {
 
     fclose(f);
     return 0;
+}
+
+void ViewProfile() {
+    char fileUser[MAX_INPUT], fileName[MAX_INPUT], fileSurname[MAX_INPUT], fileEmail[MAX_INPUT], filePhone[MAX_INPUT], filePass[MAX_INPUT];
+    FILE *f = fopen("userdata.txt", "r");
+    if (!f) return;
+    while (fscanf(f, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]\n", fileUser, fileName, fileSurname, fileEmail, filePhone, filePass) == 6) 
+	{
+        if (strcmp(fileUser, currentUser) == 0) {
+            char msg[512];
+            sprintf(msg, "Username: %s\nName: %s\nSurname: %s\nEmail: %s\nPhone: %s", fileUser, fileName, fileSurname, fileEmail, filePhone);
+            MessageBox(NULL, msg, "Profile", MB_OK);
+            break;
+        }
+    }
+    fclose(f);
 }
 
 void ClearWindow(HWND hwnd) {
@@ -155,10 +180,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
            	 	SaveUser();
         	} else if (currentPage == LOGIN && wmId == 4) {
 			    if (AuthenticateUser()) {
-			        MessageBox(NULL, "Login successful!", "Success", MB_OK);
+			        ShowMenu(hwnd);
 			    } else {
-			        MessageBox(NULL, "Invalid username or password.", "Login Failed", MB_OK | MB_ICONERROR);
-			    }
+	                int result = MessageBox(hwnd, "Invalid credentials!\nDo you want to sign up instead?", "Login Failed", MB_YESNO | MB_ICONQUESTION);
+	                if (result == IDYES) {
+	                    ShowSignup(hwnd);
+	                }
+	            }
+			} else if (currentPage == MENU){
+				if (wmId == 5) {
+	                ViewProfile();
+	            } else if (wmId == 6){
+	            	ShowWelcome(hwnd);
+				}
 			}
 
 		}
