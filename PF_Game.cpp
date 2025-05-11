@@ -1,13 +1,16 @@
 #include <windows.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #define MAX_INPUT 100
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 void ShowWelcome(HWND), ShowSignup(HWND), ShowLogin(HWND), ShowMenu(HWND);
-void ClearWindow(HWND), SaveUser();
+void ClearWindow(HWND), SaveUser(), ViewProfile();
 int AuthenticateUser();
+int isValidUsername(const char *username), isUsernameUnique(const char *username), isValidEmail(const char* email), 
+isValidPhoneNumber(const char *phone), isValidPassword(const char *password);
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU};
 enum PageState currentPage = WELCOME;
@@ -101,7 +104,36 @@ void SaveUser() {
     GetWindowText(hPassword, password, MAX_INPUT);
     GetWindowText(hConfirmPassword, confirmPassword, MAX_INPUT);
     
+    if (!strlen(userName) || !strlen(name) || !strlen(surName) || !strlen(email) || !strlen(phone) || !strlen(password) || !strlen(confirmPassword)) {
+        MessageBox(NULL, "Please fill all fields.", "Error", MB_OK);
+        return;
+    }
+
+    if (!isValidUsername(userName)) {
+    	MessageBox(NULL, "Username must contain only lowercase letters, numbers, and '_', '-', '#', '.', '/'.", "Invalid Username", MB_OK);
+	    return;
+	}
+	
+	if (!isUsernameUnique(userName)) {
+	    MessageBox(NULL, "Username already exists. Please choose a different username.", "Username Taken", MB_OK);
+	    return;
+	}
+	
+	if (!isValidEmail(email)) {
+	    MessageBox(NULL, "Invalid email format.", "Invalid Email", MB_OK);
+	    return;
+	}
+
+    if (!isValidPhoneNumber(phone)) {
+        MessageBox(NULL, "Phone number must be exactly 11 digits.", "Invalid Phone Number", MB_OK);
+        return;
+    }
     
+    if (!isValidPassword(password)) {
+        MessageBox(NULL, "Password must be at least 8 characters long and include uppercase, lowercase, digit, and special character.", "Weak Password", MB_OK);
+        return;
+    }
+
     if (strcmp(password, confirmPassword) != 0) {
         MessageBox(NULL, "Passwords do not match.", "Error", MB_OK);
         return;
@@ -116,6 +148,64 @@ void SaveUser() {
     } else {
         MessageBox(NULL, "Error saving user data.", "File Error", MB_OK);
     }
+}
+
+int isUsernameUnique(const char *username) {
+    char fileUser[MAX_INPUT], fileName[MAX_INPUT], fileSurname[MAX_INPUT], fileEmail[MAX_INPUT], filePhone[MAX_INPUT], filePass[MAX_INPUT];
+    
+    FILE *f = fopen("userdata.txt", "r");
+    if (!f) return 1;
+
+    while (fscanf(f, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]\n", fileUser, fileName, fileSurname, fileEmail, filePhone, filePass) == 6) {
+        if (strcmp(fileUser, username) == 0) {
+            fclose(f);
+            return 0;
+        }
+    }
+    fclose(f);
+    return 1;
+}
+
+int isValidUsername(const char *username) {
+    for (int i = 0; username[i]; i++) {
+        char c = username[i];
+        if (!(islower(c) || isdigit(c) || c == '_' || c == '-' || c == '#' || c == '.' || c == '/')) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int isValidEmail(const char* email) {
+    const char* at = strchr(email, '@');
+    if (!at || at == email || strchr(at + 1, '@')) return 0;
+    
+    const char* dot = strrchr(at, '.');
+    if (!dot || dot <= at + 1 || dot[1] == '\0') return 0;
+
+    return 1;
+}
+
+int isValidPhoneNumber(const char* phone) {
+    if (strlen(phone) != 11) return 0;
+    for (int i = 0; i < 11; i++) {
+        if (!isdigit((unsigned char)phone[i])) return 0;
+    }
+    return 1;
+}
+
+int isValidPassword(const char* password) {
+    int hasUpper = 0, hasLower = 0, hasDigit = 0, hasSpecial = 0;
+    if (strlen(password) < 8) return 0;
+
+    for (int i = 0; password[i]; i++) {
+        if (isupper(password[i])) hasUpper = 1;
+        else if (islower(password[i])) hasLower = 1;
+        else if (isdigit(password[i])) hasDigit = 1;
+        else hasSpecial = 1;
+    }
+
+    return hasUpper && hasLower && hasDigit && hasSpecial;
 }
 
 int AuthenticateUser() {
