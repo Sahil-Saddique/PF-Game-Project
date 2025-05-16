@@ -1,20 +1,28 @@
 #include <windows.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "resource.h"
 
 #define MAX_INPUT 100
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 void ShowWelcome(HWND), ShowSignup(HWND), ShowLogin(HWND), ShowMenu(HWND);
 void ClearWindow(HWND), SaveUser(), ViewProfile();
 int AuthenticateUser();
 int isValidUsername(const char *username), isUsernameUnique(const char *username), isValidEmail(const char* email), 
 isValidPhoneNumber(const char *phone), isValidPassword(const char *password);
+void ShowModeSelectionWindow(HWND hwnd) ;
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU};
 enum PageState currentPage = WELCOME;
 
+#define MODE_SINGLE_PLAYER 1
+#define MODE_MULTIPLAYER   2
+
+int selectedMode = 0; // Stores the selected mode
+HINSTANCE hInst;
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
 HWND hLoginUsername, hLoginPassword;
 char currentUser[MAX_INPUT] = "";
@@ -89,7 +97,7 @@ void ShowMenu(HWND hwnd) {
     ClearWindow(hwnd);
     CreateWindow("STATIC", "Menu:", WS_VISIBLE | WS_CHILD, 250, 50, 100, 30, hwnd, NULL, NULL, NULL);
     CreateWindow("BUTTON", "View Profile", WS_VISIBLE | WS_CHILD, 200, 100, 200, 30, hwnd, (HMENU)5, NULL, NULL);
-    CreateWindow("BUTTON", "Tic Tac Toe", WS_VISIBLE | WS_CHILD, 200, 150, 200, 30, hwnd, NULL, NULL, NULL);
+    CreateWindow("BUTTON", "Tic Tac Toe", WS_VISIBLE | WS_CHILD, 200, 150, 200, 30, hwnd, (HMENU)7, NULL, NULL);
     CreateWindow("BUTTON", "Logout", WS_VISIBLE | WS_CHILD, 200, 200, 200, 30, hwnd, (HMENU)6, NULL, NULL);
     currentPage = MENU;
 }
@@ -282,6 +290,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	                ViewProfile();
 	            } else if (wmId == 6){
 	            	ShowWelcome(hwnd);
+				} else if (wmId == 7) {
+				    ShowModeSelectionWindow(hwnd);
 				}
 			}
 
@@ -289,4 +299,37 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 	
     return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDC_SINGLE_PLAYER:
+            selectedMode = MODE_SINGLE_PLAYER;
+            EndDialog(hwndDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDC_MULTIPLAYER:
+            selectedMode = MODE_MULTIPLAYER;
+            EndDialog(hwndDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDCANCEL:
+            EndDialog(hwndDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+void ShowModeSelectionWindow(HWND hwnd) {
+    if (DialogBox(hInst, MAKEINTRESOURCE(IDD_MODE_SELECTION), hwnd, ModeSelectionDlgProc) == IDOK) {
+        if (selectedMode == MODE_SINGLE_PLAYER) {
+            MessageBox(hwnd, "Single Player mode selected!", "Mode", MB_OK);
+        } else if (selectedMode == MODE_MULTIPLAYER) {
+            MessageBox(hwnd, "Multiplayer mode selected!", "Mode", MB_OK);
+        }
+    }
 }
