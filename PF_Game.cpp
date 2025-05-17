@@ -7,6 +7,7 @@
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 void ShowWelcome(HWND), ShowSignup(HWND), ShowLogin(HWND), ShowMenu(HWND);
 void ClearWindow(HWND), SaveUser(), ViewProfile();
@@ -14,20 +15,28 @@ int AuthenticateUser();
 int isValidUsername(const char *username), isUsernameUnique(const char *username), isValidEmail(const char* email), 
 isValidPhoneNumber(const char *phone), isValidPassword(const char *password);
 void ShowModeSelectionWindow(HWND hwnd) ;
+void ShowDifficultySelectionWindow(HWND hwnd);
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU};
 enum PageState currentPage = WELCOME;
 
-#define MODE_SINGLE_PLAYER 1
-#define MODE_MULTIPLAYER   2
+enum GameMode { 
+	MODE_SINGLE_PLAYER = 1,
+	MODE_MULTIPLAYER = 2
+};
+
 
 int selectedMode = 0; // Stores the selected mode
 HINSTANCE hInst;
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
 HWND hLoginUsername, hLoginPassword;
 char currentUser[MAX_INPUT] = "";
+int board_size = 0;
+int selectedDifficulty = 0;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+	hInst = hInstance;
+
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
@@ -327,9 +336,45 @@ INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 void ShowModeSelectionWindow(HWND hwnd) {
     if (DialogBox(hInst, MAKEINTRESOURCE(IDD_MODE_SELECTION), hwnd, ModeSelectionDlgProc) == IDOK) {
         if (selectedMode == MODE_SINGLE_PLAYER) {
-            MessageBox(hwnd, "Single Player mode selected!", "Mode", MB_OK);
+            ShowDifficultySelectionWindow(hwnd);
         } else if (selectedMode == MODE_MULTIPLAYER) {
             MessageBox(hwnd, "Multiplayer mode selected!", "Mode", MB_OK);
         }
     }
+}
+
+void ShowDifficultySelectionWindow(HWND hwnd) {
+	DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_DIFFICULTY_SELECTION), hwnd, DifficultySelectionProc);
+
+}
+
+INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDC_EASY:
+            selectedDifficulty = DIFFICULTY_EASY;
+            board_size = 3;
+            EndDialog(hDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDC_MEDIUM:
+            selectedDifficulty = DIFFICULTY_MEDIUM;
+            board_size = 4;
+            EndDialog(hDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDC_HARD:
+            selectedDifficulty = DIFFICULTY_HARD;
+            board_size = 5;
+            EndDialog(hDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDCANCEL:
+            EndDialog(hDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
 }
