@@ -4,6 +4,7 @@
 #include "resource.h"
 
 #define MAX_INPUT 100
+#define MAX_SIZE 5
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -16,8 +17,11 @@ int isValidUsername(const char *username), isUsernameUnique(const char *username
 isValidPhoneNumber(const char *phone), isValidPassword(const char *password);
 void ShowModeSelectionWindow(HWND hwnd) ;
 void ShowDifficultySelectionWindow(HWND hwnd);
+void LaunchGameWindow(int newSize, HWND hwnd);
+void StartTicTacToe(HWND hwnd);
 
-enum PageState { WELCOME, SIGNUP, LOGIN, MENU};
+
+enum PageState { WELCOME, SIGNUP, LOGIN, MENU, GAME};
 enum PageState currentPage = WELCOME;
 
 enum GameMode { 
@@ -33,6 +37,9 @@ HWND hLoginUsername, hLoginPassword;
 char currentUser[MAX_INPUT] = "";
 int board_size = 0;
 int selectedDifficulty = 0;
+char board[MAX_SIZE][MAX_SIZE];
+char currentPlayer = 'X';
+HWND hCells[MAX_SIZE][MAX_SIZE];
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	hInst = hInstance;
@@ -344,8 +351,45 @@ void ShowModeSelectionWindow(HWND hwnd) {
 }
 
 void ShowDifficultySelectionWindow(HWND hwnd) {
-	DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_DIFFICULTY_SELECTION), hwnd, DifficultySelectionProc);
+	int result = DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_DIFFICULTY_SELECTION), hwnd, DifficultySelectionProc);
+	
+	if (result == IDOK) {
+        LaunchGameWindow(board_size, hwnd);
+    }
+}
 
+void LaunchGameWindow(int newSize, HWND hwnd) {
+	
+    board_size = newSize;
+    char msg[50];
+    sprintf(msg, "Launching Tic Tac Toe with board size %dx%d", board_size, board_size);
+    MessageBox(NULL, msg, "Game Start", MB_OK);
+    StartTicTacToe(hwnd); 
+
+}
+
+void StartTicTacToe(HWND hwnd) {
+    ClearWindow(hwnd); 
+
+    int cellSize = 60;
+    int startX = 50;
+    int startY = 50;
+
+    for (int i = 0; i < board_size; i++) {
+        for (int j = 0; j < board_size; j++) {
+            if (!hCells[i][j]) {
+                hCells[i][j] = CreateWindow("BUTTON", "", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, startX + j * cellSize, startY + i * cellSize, cellSize, cellSize,
+                    hwnd, (HMENU)(INT_PTR)(1000 + i * board_size + j), (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), NULL);
+            } else {
+                SetWindowText(hCells[i][j], ""); 
+                ShowWindow(hCells[i][j], SW_SHOW);
+            }
+            board[i][j] = ' '; 
+        }
+    }
+
+    currentPage = GAME;
+    currentPlayer = 'X';
 }
 
 INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
