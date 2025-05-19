@@ -21,6 +21,7 @@ void LaunchGameWindow(int newSize, HWND hwnd);
 void StartTicTacToe(HWND hwnd);
 void ComputerMove(int difficulty);
 static bool checkWin(char board[5][5], int boardSize, int winLength, char playerMark);
+int isBoardFull();
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU, GAME};
 enum PageState currentPage = WELCOME;
@@ -431,24 +432,42 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				    int winLength = board_size;
 				
 				    if (checkWin(board, board_size, winLength, 'X')) {
-				        MessageBox(hwnd, "You win!", "Game Over", MB_OK);
-				        ShowMenu(hwnd); // Or reset board here
-				        return 0;
-				    }
+					    int result = MessageBox(hwnd, "You win!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
+					    if (result == IDYES) {
+					        LaunchGameWindow(board_size, hwnd); 
+					    } else {
+					        ShowMenu(hwnd);  
+					    }
+					    return 0;
+					}
 				
 				    currentPlayer = 'O';
 				
-				    if (mode == MODE_SINGLE_PLAYER && currentPlayer == 'O') {
-				        ComputerMove(difficulty);
-				
-				        if (checkWin(board, board_size, winLength, 'O')) {
-				            MessageBox(hwnd, "Computer wins!", "Game Over", MB_OK);
-				            ShowMenu(hwnd); // Or reset board
-				            return 0;
-				        }
-				
-				        currentPlayer = 'X';
-				    }
+				    if (mode == 1 && currentPlayer == 'O') {
+					    ComputerMove(difficulty);
+					
+					    if (checkWin(board, board_size, winLength, 'O')) {
+					        int result = MessageBox(hwnd, "Computer wins!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
+					        if (result == IDYES) {
+					            LaunchGameWindow(board_size, hwnd);
+					        } else {
+					            ShowMenu(hwnd);
+					        }
+					        return 0;
+					    }
+					
+					    if (isBoardFull()) {
+					        int result = MessageBox(hwnd, "It's a draw!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
+					        if (result == IDYES) {
+					            LaunchGameWindow(board_size, hwnd);
+					        } else {
+					            ShowMenu(hwnd);
+					        }
+					        return 0;
+					    }
+					
+					    currentPlayer = 'X'; 
+					}
 				}
 			    
 			}
@@ -511,6 +530,12 @@ void LaunchGameWindow(int newSize, HWND hwnd) {
 
 void StartTicTacToe(HWND hwnd) {
     ClearWindow(hwnd); 
+    
+    for(int i = 0; i < board_size; i++){
+    	for(int j = 0; j < board_size; j++){
+    		hCells[i][j] = NULL;
+		}
+	}
 
     int cellSize = 60;
     int startX = 50;
@@ -531,6 +556,17 @@ void StartTicTacToe(HWND hwnd) {
 
     currentPage = GAME;
     currentPlayer = 'X';
+}
+
+int isBoardFull() {
+    for (int i = 0; i < board_size; i++) {
+        for (int j = 0; j < board_size; j++) {
+            if (board[i][j] == ' ') {
+                return 0;
+            }
+        }
+    }
+    return 1;
 }
 
 INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
