@@ -20,7 +20,7 @@ void ShowDifficultySelectionWindow(HWND hwnd);
 void LaunchGameWindow(int newSize, HWND hwnd);
 void StartTicTacToe(HWND hwnd);
 void ComputerMove(int difficulty);
-
+static bool checkWin(char board[5][5], int boardSize, int winLength, char playerMark);
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU, GAME};
 enum PageState currentPage = WELCOME;
@@ -278,7 +278,7 @@ void ClearWindow(HWND hwnd) {
         DestroyWindow(child);
         child = GetWindow(hwnd, GW_CHILD);
     }
-}
+} 
 
 void ComputerMove(int difficulty) {
     int winLength;
@@ -294,7 +294,7 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'O';
-                    SetWindowText(hCells[i][j], "O");
+                    SetWindowText(hCells[i][j], "O");  // Update UI
                     return;
                 }
             }
@@ -304,6 +304,11 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'X';
+                    if (checkWin(board, board_size, winLength, 'X')) {
+                        board[i][j] = 'O';
+                        SetWindowText(hCells[i][j], "O");  // Update UI
+                        return;
+                    }
                     board[i][j] = ' ';
                 }
             }
@@ -312,7 +317,7 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'O';
-                    SetWindowText(hCells[i][j], "O");
+                    SetWindowText(hCells[i][j], "O");  // Update UI
                     return;
                 }
             }
@@ -322,6 +327,10 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'O';
+                    if (checkWin(board, board_size, winLength, 'O')) {
+                        SetWindowText(hCells[i][j], "O");  // Update UI
+                        return;
+                    }
                     board[i][j] = ' ';
                 }
             }
@@ -330,6 +339,11 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'X';
+                    if (checkWin(board, board_size, winLength, 'X')) {
+                        board[i][j] = 'O';
+                        SetWindowText(hCells[i][j], "O");  // Update UI
+                        return;
+                    }
                     board[i][j] = ' ';
                 }
             }
@@ -338,13 +352,40 @@ void ComputerMove(int difficulty) {
             for (int j = 0; j < board_size; j++) {
                 if (board[i][j] == ' ') {
                     board[i][j] = 'O';
-                    SetWindowText(hCells[i][j], "O");
+                    SetWindowText(hCells[i][j], "O");  // Update UI
                     return;
                 }
             }
         }
     }
 }
+
+static bool checkWin(char board[5][5], int boardSize, int winLength, char playerMark) {
+    for (int row = 0; row < boardSize; row++) {
+        for (int col = 0; col < boardSize; col++) {
+            if (board[row][col] != playerMark) continue;
+            int i;
+            if (col + winLength <= boardSize) {
+                for (i = 0; i < winLength && board[row][col + i] == playerMark; i++);
+                if (i == winLength) return true;
+            }
+            if (row + winLength <= boardSize) {
+                for (i = 0; i < winLength && board[row + i][col] == playerMark; i++);
+                if (i == winLength) return true;
+            }
+            if (row + winLength <= boardSize && col + winLength <= boardSize) {
+                for (i = 0; i < winLength && board[row + i][col + i] == playerMark; i++);
+                if (i == winLength) return true;
+            }
+            if (row + winLength <= boardSize && col - winLength + 1 >= 0) {
+                for (i = 0; i < winLength && board[row + i][col - i] == playerMark; i++);
+                if (i == winLength) return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
@@ -383,17 +424,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			    int row = id / board_size;
 			    int col = id % board_size;
 			
-			     if (board[row][col] == ' ') {
-			        board[row][col] = currentPlayer;
-			        SetWindowText(hCells[row][col], "X"); 
-			
-			        currentPlayer = 'O';
-			
-			        if (mode == MODE_SINGLE_PLAYER && currentPlayer == 'O') {
-			            ComputerMove(difficulty);
-			            currentPlayer = 'X';
-			        }
-			    }
+			if (board[row][col] == ' ') {
+				    board[row][col] = currentPlayer;
+				    SetWindowText(hCells[row][col], "X");
+				
+				    int winLength = board_size;
+				
+				    if (checkWin(board, board_size, winLength, 'X')) {
+				        MessageBox(hwnd, "You win!", "Game Over", MB_OK);
+				        ShowMenu(hwnd); // Or reset board here
+				        return 0;
+				    }
+				
+				    currentPlayer = 'O';
+				
+				    if (mode == MODE_SINGLE_PLAYER && currentPlayer == 'O') {
+				        ComputerMove(difficulty);
+				
+				        if (checkWin(board, board_size, winLength, 'O')) {
+				            MessageBox(hwnd, "Computer wins!", "Game Over", MB_OK);
+				            ShowMenu(hwnd); // Or reset board
+				            return 0;
+				        }
+				
+				        currentPlayer = 'X';
+				    }
+				}
+			    
 			}
 		}
 	}
