@@ -19,6 +19,7 @@ void ShowModeSelectionWindow(HWND hwnd) ;
 void ShowDifficultySelectionWindow(HWND hwnd);
 void LaunchGameWindow(int newSize, HWND hwnd);
 void StartTicTacToe(HWND hwnd);
+void ComputerMove(int difficulty);
 
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU, GAME};
@@ -30,7 +31,7 @@ enum GameMode {
 };
 
 
-int selectedMode = 0; // Stores the selected mode
+int selectedMode = 0;
 HINSTANCE hInst;
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
 HWND hLoginUsername, hLoginPassword;
@@ -40,6 +41,8 @@ int selectedDifficulty = 0;
 char board[MAX_SIZE][MAX_SIZE];
 char currentPlayer = 'X';
 HWND hCells[MAX_SIZE][MAX_SIZE];
+int mode = MODE_SINGLE_PLAYER;
+int difficulty = DIFFICULTY_EASY;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	hInst = hInstance;
@@ -277,6 +280,72 @@ void ClearWindow(HWND hwnd) {
     }
 }
 
+void ComputerMove(int difficulty) {
+    int winLength;
+    if (difficulty == DIFFICULTY_EASY)
+        winLength = 3;
+    else if (difficulty == DIFFICULTY_MEDIUM)
+        winLength = 4;
+    else
+        winLength = 5;
+
+    if (difficulty == DIFFICULTY_EASY) {
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'O';
+                    SetWindowText(hCells[i][j], "O");
+                    return;
+                }
+            }
+        }
+    } else if (difficulty == DIFFICULTY_MEDIUM) {
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'X';
+                    board[i][j] = ' ';
+                }
+            }
+        }
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'O';
+                    SetWindowText(hCells[i][j], "O");
+                    return;
+                }
+            }
+        }
+    } else if (difficulty == DIFFICULTY_HARD) {
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'O';
+                    board[i][j] = ' ';
+                }
+            }
+        }
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'X';
+                    board[i][j] = ' ';
+                }
+            }
+        }
+        for (int i = 0; i < board_size; i++) {
+            for (int j = 0; j < board_size; j++) {
+                if (board[i][j] == ' ') {
+                    board[i][j] = 'O';
+                    SetWindowText(hCells[i][j], "O");
+                    return;
+                }
+            }
+        }
+    }
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     	
@@ -309,8 +378,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				} else if (wmId == 7) {
 				    ShowModeSelectionWindow(hwnd);
 				}
+			} else if (currentPage == GAME) {
+			    int id = wmId - 1000;
+			    int row = id / board_size;
+			    int col = id % board_size;
+			
+			     if (board[row][col] == ' ') {
+			        board[row][col] = currentPlayer;
+			        SetWindowText(hCells[row][col], "X"); 
+			
+			        currentPlayer = 'O';
+			
+			        if (mode == MODE_SINGLE_PLAYER && currentPlayer == 'O') {
+			            ComputerMove(difficulty);
+			            currentPlayer = 'X';
+			        }
+			    }
 			}
-
 		}
 	}
 	
