@@ -31,8 +31,6 @@ enum GameMode {
 	MODE_MULTIPLAYER = 2
 };
 
-
-int selectedMode = 0;
 HINSTANCE hInst;
 HWND hUsername, hName, hSurname, hEmail, hPhone, hPassword, hConfirmPassword;
 HWND hLoginUsername, hLoginPassword;
@@ -42,7 +40,7 @@ int selectedDifficulty = 0;
 char board[MAX_SIZE][MAX_SIZE];
 char currentPlayer = 'X';
 HWND hCells[MAX_SIZE][MAX_SIZE];
-int mode = MODE_SINGLE_PLAYER;
+GameMode selectedMode = MODE_SINGLE_PLAYER;
 int difficulty = DIFFICULTY_EASY;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -427,23 +425,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			if (board[row][col] == ' ') {
 				    board[row][col] = currentPlayer;
-				    SetWindowText(hCells[row][col], "X");
+				    SetWindowText(hCells[row][col], currentPlayer == 'X' ? "X" : "O");
 				
 				    int winLength = board_size;
+				    if (checkWin(board, board_size, winLength, currentPlayer)) {
+			            char msg[100];
+			            sprintf(msg, "Player %c wins!\nPlay again?", currentPlayer);
+			            int result = MessageBox(hwnd, msg, "Game Over", MB_YESNO | MB_ICONQUESTION);
+			            if (result == IDYES) {
+			                LaunchGameWindow(board_size, hwnd);
+			            } else {
+			                ShowMenu(hwnd);
+			            }
+			            return 0;
+			        }
+			        
+			        if (isBoardFull()) {
+			            int result = MessageBox(hwnd, "It's a draw!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
+			            if (result == IDYES) {
+			                LaunchGameWindow(board_size, hwnd);
+			            } else {
+			                ShowMenu(hwnd);
+			            }
+			            return 0;
+			        }
 				
-				    if (checkWin(board, board_size, winLength, 'X')) {
-					    int result = MessageBox(hwnd, "You win!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
-					    if (result == IDYES) {
-					        LaunchGameWindow(board_size, hwnd); 
-					    } else {
-					        ShowMenu(hwnd);  
-					    }
-					    return 0;
-					}
-				
-				    currentPlayer = 'O';
-				
-				    if (mode == 1 && currentPlayer == 'O') {
+				    if (selectedMode == MODE_SINGLE_PLAYER) {
+				    	currentPlayer = 'O';
 					    ComputerMove(difficulty);
 					
 					    if (checkWin(board, board_size, winLength, 'O')) {
@@ -467,9 +475,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					    }
 					
 					    currentPlayer = 'X'; 
-					}
-				}
-			    
+					} else if (selectedMode == MODE_MULTIPLAYER) { 
+			            currentPlayer = (currentPlayer == 'X') ? 'O' : 'X';
+			        }
+				}	    
 			}
 		}
 	}
@@ -506,6 +515,7 @@ void ShowModeSelectionWindow(HWND hwnd) {
             ShowDifficultySelectionWindow(hwnd);
         } else if (selectedMode == MODE_MULTIPLAYER) {
             MessageBox(hwnd, "Multiplayer mode selected!", "Mode", MB_OK);
+            LaunchGameWindow(5, hwnd);
         }
     }
 }
