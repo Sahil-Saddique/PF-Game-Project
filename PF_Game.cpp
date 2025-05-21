@@ -9,6 +9,7 @@
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ModeSelectionDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK PlayerNamesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 void ShowWelcome(HWND), ShowSignup(HWND), ShowLogin(HWND), ShowMenu(HWND);
 void ClearWindow(HWND), SaveUser(), ViewProfile();
@@ -22,6 +23,7 @@ void StartTicTacToe(HWND hwnd);
 void ComputerMove(int difficulty);
 static bool checkWin(char board[5][5], int boardSize, int winLength, char playerMark);
 int isBoardFull();
+void UpdateScoreboard(HWND hwnd);
 
 enum PageState { WELCOME, SIGNUP, LOGIN, MENU, GAME};
 enum PageState currentPage = WELCOME;
@@ -42,6 +44,11 @@ char currentPlayer = 'X';
 HWND hCells[MAX_SIZE][MAX_SIZE];
 GameMode selectedMode = MODE_SINGLE_PLAYER;
 int difficulty = DIFFICULTY_EASY;
+char player1Name[50] = "Player 1";
+char player2Name[50] = "Player 2";
+int scoreX = 0;
+int scoreO = 0;
+HWND hScoreLabel;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	hInst = hInstance;
@@ -118,6 +125,8 @@ void ShowMenu(HWND hwnd) {
     CreateWindow("BUTTON", "Tic Tac Toe", WS_VISIBLE | WS_CHILD, 200, 150, 200, 30, hwnd, (HMENU)7, NULL, NULL);
     CreateWindow("BUTTON", "Logout", WS_VISIBLE | WS_CHILD, 200, 200, 200, 30, hwnd, (HMENU)6, NULL, NULL);
     currentPage = MENU;
+    scoreX = 0;
+    scoreO = 0;
 }
 
 void SaveUser() {
@@ -429,6 +438,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				
 				    int winLength = board_size;
 				    if (checkWin(board, board_size, winLength, currentPlayer)) {
+				    	if (currentPlayer == 'X'){
+						 	scoreX++;
+						} else if (currentPlayer == 'O'){
+							scoreO++;	
+						}
+					    UpdateScoreboard(hwnd);
+					    
 			            char msg[100];
 			            sprintf(msg, "Player %c wins!\nPlay again?", currentPlayer);
 			            int result = MessageBox(hwnd, msg, "Game Over", MB_YESNO | MB_ICONQUESTION);
@@ -455,6 +471,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					    ComputerMove(difficulty);
 					
 					    if (checkWin(board, board_size, winLength, 'O')) {
+					    	scoreO++;
+							UpdateScoreboard(hwnd);
+							
 					        int result = MessageBox(hwnd, "Computer wins!\nPlay again?", "Game Over", MB_YESNO | MB_ICONQUESTION);
 					        if (result == IDYES) {
 					            LaunchGameWindow(board_size, hwnd);
@@ -482,7 +501,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 		}
 	}
-	
+
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
@@ -514,8 +533,11 @@ void ShowModeSelectionWindow(HWND hwnd) {
         if (selectedMode == MODE_SINGLE_PLAYER) {
             ShowDifficultySelectionWindow(hwnd);
         } else if (selectedMode == MODE_MULTIPLAYER) {
-            MessageBox(hwnd, "Multiplayer mode selected!", "Mode", MB_OK);
-            LaunchGameWindow(5, hwnd);
+            if (DialogBox(hInst, MAKEINTRESOURCE(IDD_PLAYER_NAMES), hwnd, PlayerNamesDlgProc) == IDOK) {
+                MessageBox(hwnd, "Multiplayer mode selected!", "Mode", MB_OK);
+                selectedMode = MODE_MULTIPLAYER;
+                LaunchGameWindow(5, hwnd);
+            }
         }
     }
 }
@@ -540,6 +562,9 @@ void LaunchGameWindow(int newSize, HWND hwnd) {
 
 void StartTicTacToe(HWND hwnd) {
     ClearWindow(hwnd); 
+    
+    hScoreLabel = NULL;
+    UpdateScoreboard(hwnd);
     
     for(int i = 0; i < board_size; i++){
     	for(int j = 0; j < board_size; j++){
@@ -609,3 +634,35 @@ INT_PTR CALLBACK DifficultySelectionProc(HWND hDlg, UINT message, WPARAM wParam,
     }
     return (INT_PTR)FALSE;
 }
+
+INT_PTR CALLBACK PlayerNamesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK) {
+            GetDlgItemText(hDlg, IDC_PLAYER1NAME, player1Name, sizeof(player1Name));
+            GetDlgItemText(hDlg, IDC_PLAYER2NAME, player2Name, sizeof(player2Name));
+            if (strlen(player1Name) == 0) strcpy(player1Name, "Player 1");
+            if (strlen(player2Name) == 0) strcpy(player2Name, "Player 2");
+            EndDialog(hDlg, IDOK);
+            return TRUE;
+        } else if (LOWORD(wParam) == IDCANCEL) {
+            EndDialog(hDlg, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
+
+void UpdateScoreboard(HWND hwnd) {
+    char scoreText[200];
+    sprintf(scoreText, "%s (X): %d    |    %s (O): %d", player1Name, scoreX, player2Name, scoreO);
+
+    if (hScoreLabel == NULL) {
+        hScoreLabel = CreateWindow("STATIC", scoreText, WS_CHILD | WS_VISIBLE,
+            50, 10, 500, 30, hwnd, NULL, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), NULL);
+    } else {
+        SetWindowText(hScoreLabel, scoreText);
+    }
+}
+
